@@ -1,16 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Elon Musk AR</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/2.2.0/aframe/build/aframe-ar.min.js"></script>
+  <title>Object Detection with Camera</title>
+  <style>
+    #videoElement {
+      width: 640px;
+      height: 480px;
+    }
+  </style>
 </head>
 <body>
-  <a-scene embedded arjs="sourceType: webcam; trackingMethod: best;">
-    <a-marker preset="custom" type="pattern" url="elon.patt">
-      <a-box position="0 0.5 0" material="color: yellow;"></a-box>
-    </a-marker>
-    <a-entity camera></a-entity>
-  </a-scene>
+  <video id="videoElement" autoplay></video>
+  <canvas id="canvas" width="640" height="480"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.7.0/dist/tf.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+  <script>
+    // Load the COCO-SSD model
+    async function loadModel() {
+      const model = await cocoSsd.load();
+      return model;
+    }
+
+    // Perform object detection on each video frame
+    async function detectObjects(video, model) {
+      const predictions = await model.detect(video);
+      return predictions;
+    }
+
+    // Render the detected objects on the video stream
+    function renderPredictions(predictions, canvas) {
+      const context = canvas.getContext('2d');
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      predictions.forEach(prediction => {
+        context.beginPath();
+        context.rect(
+          prediction.bbox[0],
+          prediction.bbox[1],
+          prediction.bbox[2],
+          prediction.bbox[3]
+        );
+        context.lineWidth = 2;
+        context.strokeStyle = 'red';
+        context.fillStyle = 'red';
+        context.stroke();
+        context.fillText(
+          `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
+          prediction.bbox[0],
+          prediction.bbox[1] > 10 ? prediction.bbox[1] - 5 : 10
+        );
+      });
+    }
+
+    // Main function
+    async function runObjectDetection() {
+      const video = document.getElementById('videoElement');
+      const canvas = document.getElementById('canvas');
+      const model = await loadModel();
+
+      if (navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(stream => {
+            video.srcObject = stream;
+
+            video.onloadedmetadata = () => {
+              const videoWidth = video.videoWidth;
+              const videoHeight = video.videoHeight;
+              canvas.width = videoWidth;
+              canvas.height = videoHeight;
+
+              setInterval(async () => {
+                const predictions = await detectObjects(video, model);
+                renderPredictions(predictions, canvas);
+              }, 1000 / 30); // Perform detection at approximately 30 FPS
+            };
+          })
+          .catch(err => {
+            console.error('Error accessing the camera: ', err);
+          });
+      }
+    }
+
+    // Run the object detection function
+    runObjectDetection();
+  </script>
 </body>
 </html>
