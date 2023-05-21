@@ -1,89 +1,30 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <title>Object Detection with Camera</title>
-  <style>
-    #videoElement {
-      width: 640px;
-      height: 480px;
-    }
-  </style>
-</head>
-<body>
-  <video id="videoElement" autoplay></video>
-  <canvas id="canvas" width="640" height="480"></canvas>
-
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.7.0/dist/tf.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-
-  <script>
-    // Load the COCO-SSD model
-    async function loadModel() {
-      const model = await cocoSsd.load();
-      return model;
-    }
-
-    // Perform object detection on each video frame
-    async function detectObjects(video, model) {
-      const predictions = await model.detect(video);
-      return predictions;
-    }
-
-    // Render the detected objects on the video stream
-    function renderPredictions(predictions, canvas) {
-      const context = canvas.getContext('2d');
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      predictions.forEach(prediction => {
-        context.beginPath();
-        context.rect(
-          prediction.bbox[0],
-          prediction.bbox[1],
-          prediction.bbox[2],
-          prediction.bbox[3]
-        );
-        context.lineWidth = 2;
-        context.strokeStyle = 'red';
-        context.fillStyle = 'red';
-        context.stroke();
-        context.fillText(
-          `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
-          prediction.bbox[0],
-          prediction.bbox[1] > 10 ? prediction.bbox[1] - 5 : 10
-        );
-      });
-    }
-
-    // Main function
-    async function runObjectDetection() {
-      const video = document.getElementById('videoElement');
-      const canvas = document.getElementById('canvas');
-      const model = await loadModel();
-
-      if (navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true })
-          .then(stream => {
-            video.srcObject = stream;
-
-            video.onloadedmetadata = () => {
-              const videoWidth = video.videoWidth;
-              const videoHeight = video.videoHeight;
-              canvas.width = videoWidth;
-              canvas.height = videoHeight;
-
-              setInterval(async () => {
-                const predictions = await detectObjects(video, model);
-                renderPredictions(predictions, canvas);
-              }, 1000 / 30); // Perform detection at approximately 30 FPS
-            };
-          })
-          .catch(err => {
-            console.error('Error accessing the camera: ', err);
-          });
-      }
-    }
-
-    // Run the object detection function
-    runObjectDetection();
-  </script>
-</body>
+  <head>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script> 
+  <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script> 
+  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@tagOrCommit/dist/aframe-extras.min.js"></script>
+  <script src="https://unpkg.com/aframe-chromakey-material/dist/aframe-chromakey-material.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <!-- <script src="https://unpkg.com/aframe-sprite-particles-component@^0.5.0/aframe-sprite-particles-component.js"></script> -->
+  </head>
+  <body>
+    <video style="opacity: 0;" id="greenscreenvideo" src="images/magic.mp4" loop autoplay muted></video>
+     <a-scene
+     vr-mode-ui="enabled: false"
+     arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
+     loading-screen="dotsColor: white; backgroundColor: #10033f"
+    >
+    <a-assets>
+       
+        <img id="mat" src="./images/pink.jpg">
+        
+      </a-assets>
+     
+      <a-image src="#mat" position="0.068 0.215 -3.143" rotation="-48.702 -1.392 -0.924" scale="1.574 2.465 0.924" shadow></a-image>
+      <a-video src="#greenscreenvideo" width="8" height="3" scale="0.283 0.462 31.000" position="0.057 0.698 -3.250" material="shader: chromakey; color: 0.1 0.9 0.2;"></a-video>
+      <a-camera  rotation-reader> </a-camera>
+   
+    </a-scene>
+  </body>
 </html>
